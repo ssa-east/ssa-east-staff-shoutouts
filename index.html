@@ -1,0 +1,248 @@
+// ============================================================
+//  SSA-East Shout-Outs — Google Apps Script  v4.0
+// ============================================================
+
+var PRESENTATION_ID = '1NkocdZevUz6CX4dH4s4dA3e9fHS_Q2ftVbO4DQIh80M';
+
+var PALETTES = [
+  { top: '#1B2A4A', gold: '#C9973A', badge: '#1B2A4A', badgeTxt: '#F0D9A0', bg: '#FFFDF6' },
+  { top: '#0F6E56', gold: '#5DCAA5', badge: '#085041', badgeTxt: '#E1F5EE', bg: '#F4FCF8' },
+  { top: '#533AB7', gold: '#AFA9EC', badge: '#3C3489', badgeTxt: '#EEEDFE', bg: '#F5F4FE' },
+  { top: '#993C1D', gold: '#F0997B', badge: '#712B13', badgeTxt: '#FAECE7', bg: '#FDF3EF' },
+  { top: '#185FA5', gold: '#85B7EB', badge: '#0C447C', badgeTxt: '#E6F1FB', bg: '#F0F6FD' },
+  { top: '#854F0B', gold: '#EF9F27', badge: '#633806', badgeTxt: '#FAEEDA', bg: '#FDF8EE' },
+];
+
+var VALUE_ICONS = {
+  'Growth': '🌱', 'Teamwork': '🤝', 'Innovation': '💡', 'Empathy': '❤️',
+  'Excellence': '⭐', 'Leadership': '🎯', 'Respectful': '🙏',
+  'Responsible': '✅', 'Kind': '💛', 'Flexibility': '🌊',
+  'Perseverance': '🔥', 'Integrity': '🌟'
+};
+
+function doGet(e) {
+  try {
+    if (!e.parameter || !e.parameter.data) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ status: 'SSA-East Shout-Outs Script is live!' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    if (e.parameter.data === 'test') {
+      testSlide();
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, message: 'Test slide created!' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var data = JSON.parse(decodeURIComponent(e.parameter.data));
+    createSlide(data);
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    createSlide(data);
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ── setSolidFill using r,g,b numbers (0-255) ─────────────────
+// Apps Script setSolidFill accepts (red, green, blue) as 0-255 ints
+function fill(shape, hex) {
+  var c = hexToColor(hex);
+  shape.getFill().setSolidFill(c.r, c.g, c.b);
+}
+
+function fillText(style, hex) {
+  var c = hexToColor(hex);
+  style.setForegroundColor(c.r, c.g, c.b);
+}
+
+function hexToColor(hex) {
+  hex = hex.replace('#', '').slice(0, 6);
+  return {
+    r: parseInt(hex.substring(0, 2), 16),
+    g: parseInt(hex.substring(2, 4), 16),
+    b: parseInt(hex.substring(4, 6), 16)
+  };
+}
+
+// ── Create one certificate slide ─────────────────────────────
+function createSlide(data) {
+  var presentation = SlidesApp.openById(PRESENTATION_ID);
+  var slides = presentation.getSlides();
+  var paletteIdx = slides.length % PALETTES.length;
+  var p = PALETTES[paletteIdx];
+  var icon = VALUE_ICONS[data.val] || '⭐';
+  var slide = presentation.appendSlide(SlidesApp.PredefinedLayout.BLANK);
+
+  var W = 720;
+  var H = 405;
+
+  // Background
+  var bgC = hexToColor(p.bg);
+  slide.getBackground().setSolidFill(bgC.r, bgC.g, bgC.b);
+
+  // Top stripe
+  var topStripe = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, 0, 0, W, 14);
+  fill(topStripe, p.top);
+  topStripe.getBorder().setTransparent();
+
+  // Bottom stripe
+  var botStripe = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, 0, H - 14, W, 14);
+  fill(botStripe, p.top);
+  botStripe.getBorder().setTransparent();
+
+  // Gold top accent
+  var goldTop = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, 0, 14, W, 4);
+  fill(goldTop, p.gold);
+  goldTop.getBorder().setTransparent();
+
+  // Gold bottom accent
+  var goldBot = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, 0, H - 18, W, 4);
+  fill(goldBot, p.gold);
+  goldBot.getBorder().setTransparent();
+
+  // Corner diamonds
+  addCornerDiamond(slide, 30, 30, p.gold);
+  addCornerDiamond(slide, W - 30, 30, p.gold);
+  addCornerDiamond(slide, 30, H - 30, p.gold);
+  addCornerDiamond(slide, W - 30, H - 30, p.gold);
+
+  // School name
+  var schoolBox = slide.insertTextBox('SSA-East', 0, 28, W, 20);
+  formatText(schoolBox, 10, p.gold, true);
+
+  // Certificate title
+  var certBox = slide.insertTextBox('Certificate of Recognition', 0, 48, W, 18);
+  formatText(certBox, 11, '#888888', false);
+  certBox.getText().getTextStyle().setItalic(true);
+
+  // Stars
+  var starBox = slide.insertTextBox('★  ★  ★  ★  ★', 0, 68, W, 18);
+  formatText(starBox, 13, p.gold, false);
+
+  // Divider 1
+  addDivider(slide, W, 90, p.gold);
+
+  // Value badge
+  var badgeW = 170;
+  var badgeShape = slide.insertShape(SlidesApp.ShapeType.ROUND_RECTANGLE, (W - badgeW) / 2, 104, badgeW, 20);
+  fill(badgeShape, p.badge);
+  badgeShape.getBorder().setTransparent();
+  badgeShape.getText().setText(icon + '  ' + data.val.toUpperCase());
+  var badgeStyle = badgeShape.getText().getTextStyle();
+  badgeStyle.setFontSize(9).setBold(true);
+  fillText(badgeStyle, p.badgeTxt);
+
+  // Recipient name
+  var nameBox = slide.insertTextBox(data.to, 40, 128, W - 80, 50);
+  formatText(nameBox, 32, p.top, true);
+
+  // From line
+  var fromBox = slide.insertTextBox('Recognized by ' + data.from, 0, 180, W, 18);
+  formatText(fromBox, 11, '#888888', false);
+
+  // Message
+  var msgText = '\u201c' + data.enhanced + '\u201d';
+  var msgBox = slide.insertTextBox(msgText, 70, 204, W - 140, 88);
+  var bgFill = hexToColor(p.bg);
+  msgBox.getFill().setSolidFill(bgFill.r, bgFill.g, bgFill.b);
+  var borderC = hexToColor(p.gold);
+  msgBox.getBorder().setWeight(2);
+  msgBox.getBorder().getLineFill().setSolidFill(borderC.r, borderC.g, borderC.b);
+  var msgStyle = msgBox.getText().getTextStyle();
+  msgStyle.setFontSize(12).setItalic(true);
+  fillText(msgStyle, '#2C2C2A');
+
+  // Divider 2
+  addDivider(slide, W, 298, p.gold);
+
+  // Date
+  var dateStr = Utilities.formatDate(
+    new Date(data.ts || new Date()),
+    Session.getScriptTimeZone(),
+    'MMMM d, yyyy'
+  );
+  var dateBox = slide.insertTextBox(dateStr, 0, 310, W, 16);
+  formatText(dateBox, 9, '#AAAAAA', false);
+
+  // Seal circle
+  var sealX = (W - 44) / 2;
+  var sealCircle = slide.insertShape(SlidesApp.ShapeType.ELLIPSE, sealX, 328, 44, 44);
+  fill(sealCircle, p.top);
+  var sealBorderC = hexToColor(p.gold);
+  sealCircle.getBorder().setWeight(2);
+  sealCircle.getBorder().getLineFill().setSolidFill(sealBorderC.r, sealBorderC.g, sealBorderC.b);
+
+  // Seal star
+  var sealStar = slide.insertTextBox('★', sealX, 326, 44, 44);
+  sealStar.getFill().setTransparent();
+  sealStar.getBorder().setTransparent();
+  var sealStyle = sealStar.getText().getTextStyle();
+  sealStyle.setFontSize(22).setBold(true);
+  fillText(sealStyle, p.gold);
+  sealStar.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
+  sealCircle.bringToFront();
+  sealStar.bringToFront();
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function formatText(box, size, color, bold) {
+  box.getFill().setTransparent();
+  box.getBorder().setTransparent();
+  var style = box.getText().getTextStyle();
+  style.setFontSize(size).setBold(bold || false);
+  fillText(style, color);
+  box.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
+}
+
+function addDivider(slide, W, y, goldColor) {
+  var half = W / 2;
+  var lineL = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, 80, y + 4, half - 90, 1);
+  fill(lineL, goldColor);
+  lineL.getBorder().setTransparent();
+
+  var lineR = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, half + 10, y + 4, half - 90, 1);
+  fill(lineR, goldColor);
+  lineR.getBorder().setTransparent();
+
+  var gem = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, half - 5, y, 10, 10);
+  fill(gem, goldColor);
+  gem.getBorder().setTransparent();
+  gem.setRotation(45);
+}
+
+function addCornerDiamond(slide, cx, cy, goldColor) {
+  var size = 8;
+  var d = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, cx - size / 2, cy - size / 2, size, size);
+  fill(d, goldColor);
+  d.getBorder().setTransparent();
+  d.setRotation(45);
+}
+
+
+// ── Test — run from Apps Script editor toolbar ────────────────
+function testSlide() {
+  createSlide({
+    from: 'Kemal Aksoy',
+    to: 'Ms. Rivera',
+    val: 'Excellence',
+    enhanced: 'Ms. Rivera consistently goes above and beyond for her students, bringing creativity and dedication to everything she does. Her positive energy lifts the entire team.',
+    ts: new Date().toISOString()
+  });
+  Logger.log('Test slide created! Check your presentation.');
+}
