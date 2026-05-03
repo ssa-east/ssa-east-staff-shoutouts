@@ -670,10 +670,19 @@ window.submitShoutout = async function() {
 async function pushToGoogleSlides(entry) {
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') return;
   try {
-    // Use GET with encoded payload to avoid CORS preflight
-    var payload = encodeURIComponent(JSON.stringify(entry));
-    var url = APPS_SCRIPT_URL + '?data=' + payload;
-    await fetch(url, { method: 'GET', mode: 'no-cors' });
+    // Build a safe payload — strip emoji from val to keep URL short
+    var payload = {
+      from: entry.from,
+      to: entry.to,
+      val: entry.val,
+      enhanced: entry.enhanced,
+      ts: entry.ts
+    };
+    var encoded = encodeURIComponent(JSON.stringify(payload));
+    var url = APPS_SCRIPT_URL + '?data=' + encoded;
+    // Use an image request — fully CORS-safe, no preflight, always fires
+    var img = new Image();
+    img.src = url;
   } catch(e) {
     console.warn('Apps Script push failed:', e);
   }
